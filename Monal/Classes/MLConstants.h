@@ -29,14 +29,18 @@ static const DDLogLevel ddLogLevel = LOG_LEVEL_STDOUT;
 #define PMKHangDouble(promise)              (((NSNumber*)PMKHang(promise)).doubleValue)
 
 //configure app group constants
+//the app group id actually granted to this binary: sideloaded builds (AltStore/SideStore) are re-signed
+//and get a different app group id than kDefaultAppGroup, see MLAppGroupIdentifier() in HelperTools.m
+FOUNDATION_EXPORT NSString* _Nonnull MLAppGroupIdentifier(void);
+#define kAppGroup MLAppGroupIdentifier()
 #ifdef IS_ALPHA
-    #define kAppGroup @"group.monalalpha"
+    #define kDefaultAppGroup @"group.monalalpha"
     #define kMonalOpenURL [NSURL URLWithString:@"monalAlphaOpen://"]
     #define kBackgroundProcessingTask @"im.monal.alpha.process"
     #define kBackgroundRefreshingTask @"im.monal.alpha.refresh"
     #define kBackgroundURLSessionIdentifier @"im.monal.alpha.backgroundHttpFetch"
 #else
-    #define kAppGroup @"group.monal"
+    #define kDefaultAppGroup @"group.monal"
     #define kMonalOpenURL [NSURL URLWithString:@"monalOpen://"]
     #define kBackgroundProcessingTask @"im.monal.process"
     #define kBackgroundRefreshingTask @"im.monal.refresh"

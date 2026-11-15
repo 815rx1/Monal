@@ -542,6 +542,36 @@ static void notification_center_logging(CFNotificationCenterRef center, void* ob
 }
 @end
 
+NSString* MLAppGroupIdentifier(void)
+{
+    static NSString* appGroup;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        appGroup = kDefaultAppGroup;
+        //AltStore/SideStore re-sign sideloaded apps and have to register their own app group ids
+        //(e.g. group.monalalpha.<TEAMID>), they store the ids really granted to us in the ALTAppGroups key of our Info.plist
+        id altAppGroups = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"ALTAppGroups"];
+        if(![altAppGroups isKindOfClass:[NSArray class]])
+            return;
+        NSString* fallback = nil;
+        for(id group in (NSArray*)altAppGroups)
+        {
+            if(![group isKindOfClass:[NSString class]] || [(NSString*)group length] == 0)
+                continue;
+            if([(NSString*)group hasPrefix:kDefaultAppGroup])
+            {
+                appGroup = group;
+                return;
+            }
+            if(fallback == nil)
+                fallback = group;
+        }
+        if(fallback != nil)
+            appGroup = fallback;
+    });
+    return appGroup;
+}
+
 @implementation HelperTools
 
 +(void) load

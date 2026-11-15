@@ -62,6 +62,24 @@ jobs:
           echo "Packaging $APP"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$APP" "$RUNNER_TEMP/ipa/Payload/"
+          APP="$RUNNER_TEMP/ipa/Payload/$(basename "$APP")"
+
+          # Ad-hoc sign with a minimal set of entitlements, so SideStore/AltStore know which
+          # app group and keychain group to register when re-signing (unsigned builds carry no
+          # entitlements at all and Monal crashes on start without its app group container).
+          ENT="$RUNNER_TEMP/sideload.entitlements"
+          /usr/libexec/PlistBuddy -c "Add :com.apple.security.application-groups array" \
+            -c "Add :com.apple.security.application-groups:0 string group.monalalpha" \
+            -c "Add :keychain-access-groups array" \
+            -c "Add :keychain-access-groups:0 string AAAAAAAAAA.monal.alpha" \
+            -c "Add :application-identifier string AAAAAAAAAA.$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" \
+            -c "Add :com.apple.developer.team-identifier string AAAAAAAAAA" \
+            "$ENT"
+          cat "$ENT"
+          find "$APP" -depth \( -name '*.framework' -o -name '*.dylib' -o -name '*.appex' \) -print0 | \
+            xargs -0 -I{} codesign --force --sign - --timestamp=none "{}"
+          codesign --force --sign - --timestamp=none --entitlements "$ENT" "$APP"
+          codesign -d --entitlements - "$APP"
           cd "$RUNNER_TEMP/ipa"
           zip -qry "$GITHUB_WORKSPACE/Monal-unsigned.ipa" Payload
       - uses: actions/upload-artifact@v7
